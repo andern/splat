@@ -5,6 +5,7 @@ flags = [
 '-lGLEW',
 '-lglfw',
 '-lGL',
+'-lm',
 '-Wall',
 '-Wextra',
 '-Wdouble-promotion',
@@ -40,9 +41,7 @@ flags = [
 '-pedantic',
 '-g3',
 '-x',
-'c',
-'-I',
-'./include'
+'c'
 ]
 
 

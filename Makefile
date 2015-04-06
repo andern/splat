@@ -2,7 +2,7 @@ SHELL:= /bin/bash
 
 include config.mk
 
-SRC = splat.c log.c debug.c util.c
+SRC = splat.c log.c debug.c util.c gl_math.c
 OBJ = $(SRC:.c=.o)
 
 all: $(PROGRAM_NAME)

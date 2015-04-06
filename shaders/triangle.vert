@@ -2,6 +2,8 @@
 
 in vec3 vp;
 
+uniform mat4 view, proj;
+
 void main() {
-    gl_Position = vec4 (vp, 1.0);
+    gl_Position = view * vec4 (vp, 1);
 }

@@ -18,10 +18,12 @@
 #include <GLFW/glfw3.h>
 
 #include <getopt.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "debug.h"
+#include "gl_math.h"
 #include "log.h"
 #include "util.h"
 
@@ -70,13 +72,6 @@ static void error_callback(int error, const char* description)
         log_error("GLFW: %d %s\n", error, description);
 }
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action,
-                int mods)
-{
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-                glfwSetWindowShouldClose(window, GL_TRUE);
-}
-
 static void window_size_callback(GLFWwindow* window, int width, int height)
 {
         w_width = width;
@@ -84,24 +79,51 @@ static void window_size_callback(GLFWwindow* window, int width, int height)
         // TODO: Update perspective matrix
 }
 
-void update_fps_counter(GLFWwindow* window)
+static void update_fps_counter(GLFWwindow* window)
 {
-        static double prev = 0.0;
+        static double prev;
         static int frame_count;
 
         double current = glfwGetTime();
         double elapsed = current - prev;
 
-        if (elapsed > 0.25) {
+        if (elapsed >= 0.25) {
                 prev = current;
                 double fps = frame_count / elapsed;
 
                 char buf[64];
-                sprintf(buf, "fps: %.4f", fps);
+                sprintf(buf, "fps: %.1f", fps);
                 glfwSetWindowTitle(window, buf);
                 frame_count = 0;
         }
         frame_count++;
+}
+
+float cam_pos[] = {0.0f, 0.0f, 2.0f};
+float cam_yaw = 0.0f;
+float cam_speed = 1.0f;
+float cam_yaw_speed = 10.0f;
+
+float near = 0.1f;
+float far = 100.0f;
+
+mat4 view_mat = {0};
+vec3 target = {0.5f, 0.5f, 0.5f};
+vec3 up = {0.0f, 1.0f, 0.0f};
+
+static void key_callback(GLFWwindow* window, int key, int scancode, int action,
+                int mods)
+{
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+                glfwSetWindowShouldClose(window, GL_TRUE);
+        else if (key == GLFW_KEY_W && action == GLFW_PRESS)
+                cam_pos[1] -= cam_speed;
+        else if (key == GLFW_KEY_A && action == GLFW_PRESS)
+                cam_pos[0] -= cam_speed;
+        else if (key == GLFW_KEY_S && action == GLFW_PRESS)
+                cam_pos[1] += cam_speed;
+        else if (key == GLFW_KEY_D && action == GLFW_PRESS)
+                cam_pos[0] += cam_speed;
 }
 
 int main(int argc, char* argv[])
@@ -161,8 +183,8 @@ int main(int argc, char* argv[])
         log_gl_params();
 
         /* Only draw pixels on shapes that are close to the viewer */
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
+//        glEnable(GL_DEPTH_TEST);
+//        glDepthFunc(GL_LESS);
 
         GLuint vbo;
         glGenBuffers(1, &vbo);
@@ -182,16 +204,42 @@ int main(int argc, char* argv[])
         glDeleteShader(vs);
         glDeleteShader(fs);
 
-        while (!glfwWindowShouldClose(window)) {
-                update_fps_counter(window);
-                glfwPollEvents();
+        float fov = rad(67.0f);
+        float aspect = (float)w_width / (float)w_height;
+        float range = tanf(fov * 0.5f) * near;
+        float Sx = (2.0f * near) / (range * aspect + range * aspect);
+        float Sy = near / range;
+        float Sz = -(far + near) / (far - near);
+        float Pz = -(2.0f * far * near) / (far - near);
 
+        mat4 proj_mat = {0};
+        mat_diag(proj_mat, Sx, Sy, Sz, 0.0f);
+        proj_mat[11] = -1.0f;
+        proj_mat[14] = Pz;
+
+        print_mat(view_mat);
+        print_mat(proj_mat);
+
+        int proj_loc = glGetUniformLocation(sp, "proj");
+        int view_loc = glGetUniformLocation(sp, "view");
+
+        while (!glfwWindowShouldClose(window)) {
+                glClearColor(0.6f, 0.6f, 0.6f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                mat_look_at(view_mat, cam_pos, target, up);
+
                 glUseProgram(sp);
+                glUniformMatrix4fv(proj_loc, 1, GL_FALSE, proj_mat);
+                glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_mat);
+
                 glBindVertexArray(vao);
                 glDrawArrays(GL_TRIANGLES, 0, 3);
 
                 glfwSwapBuffers(window);
+
+                update_fps_counter(window);
+                glfwPollEvents();
         }
 
         glDeleteProgram(sp);
