@@ -5,7 +5,7 @@
 
 float rad(float deg)
 {
-        return 3.14159265359f / 180 * deg;
+        return 3.14159265359f / 180.0f * deg;
 }
 
 void vec3_cross(vec3 vec, const vec3 a, const vec3 b)
@@ -38,12 +38,6 @@ void mat_diag(mat4 mat, float a, float b, float c, float d)
         mat[15] = d;
 }
 
-void mat_identity(mat4 mat)
-{
-        for (int i = 0; i < 16; i++) mat[i] = 0;
-        mat_diag(mat, 1.0f, 1.0f, 1.0f, 1.0f);
-}
-
 void mat_look_at(mat4 mat, const vec3 camera_pos,
 const vec3 target_pos, const vec3 up_dir)
 {
@@ -58,6 +52,26 @@ const vec3 target_pos, const vec3 up_dir)
         vec3_cross(up_dir_new, right_dir, forward_dir);
 
         mat[0] = right_dir[0];
+        mat[4] = right_dir[1];
+        mat[8] = right_dir[2];
+//        mat[12] = 0;
+
+        mat[1] = up_dir_new[0];
+        mat[5] = up_dir_new[1];
+        mat[9] = up_dir_new[2];
+//        mat[13] = 0;
+
+        mat[2] = -forward_dir[0];
+        mat[6] = -forward_dir[1];
+        mat[10] = -forward_dir[2];
+//        mat[14] = 0;
+
+//        mat[3] = 0;
+//        mat[7] = 0;
+//        mat[11] = 0;
+        mat[15] = 1;
+
+/*        mat[0] = right_dir[0];
         mat[1] = right_dir[1];
         mat[2] = right_dir[2];
         mat[3] = 0;
@@ -75,15 +89,12 @@ const vec3 target_pos, const vec3 up_dir)
         mat[12] = 0;
         mat[13] = 0;
         mat[14] = 0;
-        mat[15] = 1;
+        mat[15] = 1; */
 
-        mat4 translate = {0};
-        mat_diag(translate, 1.0f, 1.0f, 1.0f, 1.0f);
-        translate[3] = -camera_pos[0];
-        translate[7] = -camera_pos[1];
-        translate[11] = -camera_pos[2];
+        mat4 T = {0};
+        mat_translate(T, -camera_pos[0], -camera_pos[1], -camera_pos[2]);
 
-        mat_mul(mat, mat, translate);
+        mat_mul(mat, mat, T);
 }
 
 void mat_mul(mat4 mat, const mat4 a, const mat4 b)
@@ -109,6 +120,20 @@ void mat_mul(mat4 mat, const mat4 a, const mat4 b)
         mat[15] = a[12]*b[3] + a[13]*b[7] + a[14]*b[11] + a[15]*b[15];
 }
 
+void mat_translate(mat4 mat, float a, float b, float c)
+{
+        mat_diag(mat, 1, 1, 1, 1);
+        mat[12] = a;
+        mat[13] = b;
+        mat[14] = c;
+}
+
+void mat_rotate_y(mat4 mat, float deg)
+{
+        mat_diag(mat, cosf(rad(deg)), 1, cosf(rad(deg)), 1);
+        mat[2] = sinf(rad(deg));
+        mat[8] = -sinf(rad(deg));
+}
 
 void print_mat(mat4 mat)
 {

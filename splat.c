@@ -107,10 +107,6 @@ float cam_yaw_speed = 10.0f;
 float near = 0.1f;
 float far = 100.0f;
 
-mat4 view_mat = {0};
-vec3 target = {0.5f, 0.5f, 0.5f};
-vec3 up = {0.0f, 1.0f, 0.0f};
-
 static void key_callback(GLFWwindow* window, int key, int scancode, int action,
                 int mods)
 {
@@ -124,6 +120,14 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action,
                 cam_pos[1] += cam_speed;
         else if (key == GLFW_KEY_D && action == GLFW_PRESS)
                 cam_pos[0] += cam_speed;
+        else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+                cam_yaw -= cam_speed * 25;
+        else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+                cam_yaw += cam_speed * 25;
+        else if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+                cam_pos[2] -= cam_speed;
+        else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+                cam_pos[2] += cam_speed;
 }
 
 int main(int argc, char* argv[])
@@ -204,7 +208,7 @@ int main(int argc, char* argv[])
         glDeleteShader(vs);
         glDeleteShader(fs);
 
-        float fov = rad(67.0f);
+        float fov = rad(90.0f);
         float aspect = (float)w_width / (float)w_height;
         float range = tanf(fov * 0.5f) * near;
         float Sx = (2.0f * near) / (range * aspect + range * aspect);
@@ -213,25 +217,38 @@ int main(int argc, char* argv[])
         float Pz = -(2.0f * far * near) / (far - near);
 
         mat4 proj_mat = {0};
-        mat_diag(proj_mat, Sx, Sy, Sz, 0.0f);
-        proj_mat[11] = -1.0f;
+        mat4 view_mat = {0};
+        mat4 world_mat = {0};
+        mat_translate(world_mat, 1, 0, 0);
+
+        mat_diag(proj_mat, Sx, Sy, Sz, 0);
+        proj_mat[11] = -1;
         proj_mat[14] = Pz;
 
+        mat4 T = {0};
+        mat4 R = {0};
+
+        print_mat(T);
+        print_mat(R);
         print_mat(view_mat);
         print_mat(proj_mat);
 
         int proj_loc = glGetUniformLocation(sp, "proj");
         int view_loc = glGetUniformLocation(sp, "view");
+        int world_loc = glGetUniformLocation(sp, "world");
 
         while (!glfwWindowShouldClose(window)) {
                 glClearColor(0.6f, 0.6f, 0.6f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                mat_look_at(view_mat, cam_pos, target, up);
+                mat_translate(T, -cam_pos[0], -cam_pos[1], -cam_pos[2]);
+                mat_rotate_y(R, -cam_yaw);
+                mat_mul(view_mat, R, T);
 
                 glUseProgram(sp);
                 glUniformMatrix4fv(proj_loc, 1, GL_FALSE, proj_mat);
                 glUniformMatrix4fv(view_loc, 1, GL_FALSE, view_mat);
+                glUniformMatrix4fv(world_loc, 1, GL_FALSE, world_mat);
 
                 glBindVertexArray(vao);
                 glDrawArrays(GL_TRIANGLES, 0, 3);
