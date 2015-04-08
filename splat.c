@@ -99,35 +99,41 @@ static void update_fps_counter(GLFWwindow* window)
         frame_count++;
 }
 
-float cam_pos[] = {0.0f, 0.0f, 2.0f};
+float cam_pos[] = {0.0f, 0.0f, 1.0f};
 float cam_yaw = 0.0f;
-float cam_speed = 1.0f;
+float cam_pitch = 0.0f;
+float cam_speed = 0.1f;
 float cam_yaw_speed = 10.0f;
 
 float near = 0.1f;
 float far = 100.0f;
+
+static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
+{
+        printf("%f %f\n", xpos, ypos);
+}
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action,
                 int mods)
 {
         if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
                 glfwSetWindowShouldClose(window, GL_TRUE);
-        else if (key == GLFW_KEY_W && action == GLFW_PRESS)
-                cam_pos[1] -= cam_speed;
-        else if (key == GLFW_KEY_A && action == GLFW_PRESS)
-                cam_pos[0] -= cam_speed;
-        else if (key == GLFW_KEY_S && action == GLFW_PRESS)
-                cam_pos[1] += cam_speed;
-        else if (key == GLFW_KEY_D && action == GLFW_PRESS)
-                cam_pos[0] += cam_speed;
-        else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-                cam_yaw -= cam_speed * 25;
-        else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-                cam_yaw += cam_speed * 25;
-        else if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+        if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
                 cam_pos[2] -= cam_speed;
-        else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+        if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT))
+                cam_pos[0] -= cam_speed;
+        if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
                 cam_pos[2] += cam_speed;
+        if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT))
+                cam_pos[0] += cam_speed;
+        if (key == GLFW_KEY_LEFT && (action == GLFW_PRESS || action == GLFW_REPEAT))
+                cam_yaw -= cam_yaw_speed;
+        if (key == GLFW_KEY_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT))
+                cam_yaw += cam_yaw_speed;
+        if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT))
+                cam_pitch -= cam_yaw_speed;
+        if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT))
+                cam_pitch += cam_yaw_speed;
 }
 
 int main(int argc, char* argv[])
@@ -173,6 +179,7 @@ int main(int argc, char* argv[])
         glfwSetWindowSizeCallback(window, window_size_callback);
         glfwMakeContextCurrent(window);
         glfwSetKeyCallback(window, key_callback);
+        glfwSetCursorPosCallback(window, cursor_pos_callback);
 
         glewExperimental = GL_TRUE;
         GLenum err = glewInit();
@@ -227,11 +234,8 @@ int main(int argc, char* argv[])
 
         mat4 T = {0};
         mat4 R = {0};
-
-        print_mat(T);
-        print_mat(R);
-        print_mat(view_mat);
-        print_mat(proj_mat);
+        mat4 Ry = {0};
+        mat4 Rx = {0};
 
         int proj_loc = glGetUniformLocation(sp, "proj");
         int view_loc = glGetUniformLocation(sp, "view");
@@ -242,7 +246,9 @@ int main(int argc, char* argv[])
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 mat_translate(T, -cam_pos[0], -cam_pos[1], -cam_pos[2]);
-                mat_rotate_y(R, -cam_yaw);
+                mat_rotate_y(Ry, -cam_yaw);
+                mat_rotate_x(Rx, -cam_pitch);
+                mat_mul(R, Ry, Rx);
                 mat_mul(view_mat, R, T);
 
                 glUseProgram(sp);

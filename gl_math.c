@@ -128,11 +128,25 @@ void mat_translate(mat4 mat, float a, float b, float c)
         mat[14] = c;
 }
 
+void mat_rotate_x(mat4 mat, float deg)
+{
+        mat_diag(mat, 1, cosf(rad(deg)), cosf(rad(deg)), 1);
+        mat[6] = -sinf(rad(deg));
+        mat[9] = sinf(rad(deg));
+}
+
 void mat_rotate_y(mat4 mat, float deg)
 {
         mat_diag(mat, cosf(rad(deg)), 1, cosf(rad(deg)), 1);
         mat[2] = sinf(rad(deg));
         mat[8] = -sinf(rad(deg));
+}
+
+void mat_rotate_z(mat4 mat, float deg)
+{
+        mat_diag(mat, cosf(rad(deg)), cosf(rad(deg)), 1, 1);
+        mat[1] = -sinf(rad(deg));
+        mat[4] = sinf(rad(deg));
 }
 
 void print_mat(mat4 mat)
